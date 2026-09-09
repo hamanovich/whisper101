@@ -1,0 +1,12 @@
+node_modules/
+output/
+out/
+dist/
+work/
+models/
+vendor/
+.local/
+coverage/
+.env*
+bun.lock
+feedback.md

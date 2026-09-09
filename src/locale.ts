@@ -1,0 +1,58 @@
+import type { FeedbackLanguage } from "./options";
+const locales = {
+  ru: {
+    unavailable: "Оценки токенов Whisper недоступны.",
+    confidence: "Средняя оценка токенов Whisper",
+    low: "ниже 0.50",
+    notAccuracy: "Это не процент точности.",
+    unknownLanguage: "Язык по тексту",
+    noDuration: "длительность недоступна",
+    natural: "Естественные фразы",
+    grammar: "Грамматические замечания к транскрипту",
+    formulations: "Более естественные формулировки",
+    vocabulary: "Полезные слова и конструкции",
+    review: "Места для сверки с аудио",
+    empty: "Нет выделенных пунктов.",
+    transcript: "Транскрипт",
+    corrected: "Исправленный вариант",
+    notice:
+      "Это выбранные примеры из транскрипта. Ошибки могут принадлежать распознаванию; сверяйте спорные места с исходной записью. Произношение не оценивается.",
+  },
+  en: {
+    unavailable: "Whisper token scores unavailable.",
+    confidence: "Mean Whisper token score",
+    low: "below 0.50",
+    notAccuracy: "This is not an accuracy percentage.",
+    unknownLanguage: "Language inferred from text",
+    noDuration: "duration unavailable",
+    natural: "Natural phrases",
+    grammar: "Grammar observations in the transcript",
+    formulations: "More natural formulations",
+    vocabulary: "Useful words and expressions",
+    review: "Passages to check against the audio",
+    empty: "No selected items.",
+    transcript: "Transcript",
+    corrected: "Corrected version",
+    notice:
+      "These are selected examples from the transcript. Errors may come from recognition; check uncertain passages against the original recording. Pronunciation is not assessed.",
+  },
+  pl: {
+    unavailable: "Oceny tokenów Whisper są niedostępne.",
+    confidence: "Średnia ocena tokenów Whisper",
+    low: "poniżej 0.50",
+    notAccuracy: "To nie jest procent dokładności.",
+    unknownLanguage: "Język rozpoznany z tekstu",
+    noDuration: "czas nagrania niedostępny",
+    natural: "Naturalne wyrażenia",
+    grammar: "Uwagi gramatyczne do transkrypcji",
+    formulations: "Bardziej naturalne sformułowania",
+    vocabulary: "Przydatne słowa i konstrukcje",
+    review: "Fragmenty do sprawdzenia z nagraniem",
+    empty: "Brak wybranych elementów.",
+    transcript: "Transkrypcja",
+    corrected: "Poprawiona wersja",
+    notice:
+      "To wybrane przykłady z transkrypcji. Błędy mogą wynikać z rozpoznawania mowy; porównaj niepewne fragmenty z nagraniem. Wymowa nie jest oceniana.",
+  },
+};
+export const coachLocale = (language: FeedbackLanguage) => locales[language];
