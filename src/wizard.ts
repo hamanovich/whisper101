@@ -18,13 +18,13 @@ type Choice = { value: string; label: string };
 export type WizardUI = {
   pick(message: string, choices: Choice[], initial: string): Promise<string>;
   confirm(message: string): Promise<boolean>;
-  show(message: string): void;
+  show(message: string, title?: string): void;
 };
 function answer<T>(value: T | symbol): T {
   if (p.isCancel(value)) throw new Cancelled("Запуск отменён.");
   return value as T;
 }
-const ui: WizardUI = {
+export const ui: WizardUI = {
   async pick(message, options, initialValue) {
     return answer(await p.select({ message, options, initialValue }));
   },
@@ -38,8 +38,8 @@ const ui: WizardUI = {
       }),
     );
   },
-  show(message) {
-    p.note(message, "Настройки запуска");
+  show(message, title = "Настройки запуска") {
+    p.note(message, title);
   },
 };
 
@@ -109,7 +109,6 @@ export async function collectSelection(
     !languages.some((item) => item.value === saved.language)
   )
     languages.push({ value: saved.language, label: saved.language });
-  // Text already exists; language can be inferred by the task from its content.
   const language =
     preset.language ||
     (textInput

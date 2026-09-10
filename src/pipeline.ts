@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { config, ROOT } from "./config";
 import { createOutputDirectory } from "./output";
@@ -10,6 +10,8 @@ import { meeting } from "./tasks/meeting";
 import { note } from "./tasks/note";
 import { analyze } from "./analyze";
 import type { RunOptions } from "./options";
+import { ensureReport } from "./report";
+import { existingFile } from "./history";
 
 export async function pipeline(options: RunOptions) {
   const c = config();
@@ -44,6 +46,8 @@ export async function pipeline(options: RunOptions) {
     task: options.task,
     input: options.input,
     inputType: options.textInput ? "text" : "audio",
+    sourceRun: options.sourceRun || null,
+    transcriptSource: options.transcriptSource || "original",
     requestedLanguage: options.language,
     detectedLanguage: null as string | null,
     feedbackLanguage:
@@ -62,9 +66,32 @@ export async function pipeline(options: RunOptions) {
   await saveRun();
   console.log(`Результаты: ${out}`);
   try {
-    if (options.textInput)
-      await writeFile(join(out, "transcript.txt"), transcript, { flag: "wx" });
-    else {
+    if (options.textInput) {
+      if (options.transcriptSource === "reviewed") {
+        if (!options.sourceRun)
+          throw new Error(
+            "Для проверенного транскрипта не указана исходная запись.",
+          );
+        const original = await existingFile(
+          join(options.sourceRun, "transcript.txt"),
+        );
+        if (!original)
+          throw new Error("Исходный transcript.txt больше недоступен.");
+        await copyFile(original, join(out, "transcript.txt"));
+        await writeFile(join(out, "transcript.reviewed.txt"), transcript, {
+          flag: "wx",
+        });
+      } else
+        await writeFile(join(out, "transcript.txt"), transcript, {
+          flag: "wx",
+        });
+      if (options.sourceRun) {
+        for (const name of ["audio.wav", "transcript.json"]) {
+          const source = await existingFile(join(options.sourceRun, name));
+          if (source) await copyFile(source, join(out, name));
+        }
+      }
+    } else {
       const start = performance.now();
       try {
         transcript = await transcribe(
@@ -79,9 +106,11 @@ export async function pipeline(options: RunOptions) {
         run.timingsSeconds.transcription = (performance.now() - start) / 1000;
       }
     }
-    console.log(`Транскрипт: ${join(out, "transcript.txt")}`);
+    console.log(
+      `${options.transcriptSource === "reviewed" ? "Проверенный транскрипт" : "Транскрипт"}: ${join(out, options.transcriptSource === "reviewed" ? "transcript.reviewed.txt" : "transcript.txt")}`,
+    );
     let scores = recognitionScores(null);
-    if (!options.textInput) {
+    if (!options.textInput || options.sourceRun) {
       try {
         scores = recognitionScores(
           await Bun.file(join(out, "transcript.json")).json(),
@@ -96,9 +125,10 @@ export async function pipeline(options: RunOptions) {
       language:
         scores.language ||
         (options.language === "auto" ? null : options.language),
-      durationSeconds: options.textInput
-        ? null
-        : await wavDuration(join(out, "audio.wav")).catch(() => null),
+      durationSeconds:
+        options.textInput && !options.sourceRun
+          ? null
+          : await wavDuration(join(out, "audio.wav")).catch(() => null),
     };
     if (options.task !== "transcribe") {
       console.log("Отправляю текст в OpenAI…");
@@ -159,5 +189,12 @@ export async function pipeline(options: RunOptions) {
     run.finishedAt = new Date().toISOString();
     run.timingsSeconds.total = (performance.now() - started) / 1000;
     await saveRun();
+    try {
+      console.log(`HTML-отчёт: ${await ensureReport(out)}`);
+    } catch {
+      console.warn(
+        "HTML-отчёт не создан. Сохранённые файлы доступны в папке результата.",
+      );
+    }
   }
 }

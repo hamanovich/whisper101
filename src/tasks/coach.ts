@@ -171,5 +171,5 @@ export function coachMarkdown(
         (item) => `${item.original} → ${item.corrected}\n  ${item.explanation}`,
       ),
     );
-  return `# Language Coach\n\n${coachSummary(data, recognition, feedbackLanguage)}\n\n> ${l.notice}\n\n## ${l.transcript}\n\n${transcript.trim()}\n\n## ${l.corrected}\n\n${data.corrected_transcript}\n\n## ${l.natural}\n\n${list(data.natural_phrases.map((item) => `${item.phrase} — ${item.reason}`))}\n\n## ${l.grammar}\n\n${corrections(data.grammar_issues)}\n\n## ${l.formulations}\n\n${corrections(data.native_formulations)}\n\n## ${l.vocabulary}\n\n${list(data.vocabulary.map((item) => `${item.word} — ${item.translation}\n  ${item.example}`))}\n\n## ${l.review}\n\n${list(data.uncertain_passages)}\n`;
+  return `# Language Coach\n\n${coachSummary(data, recognition, feedbackLanguage)}\n\n> ${l.notice}\n\n## ${l.transcript}\n\n${transcript.trim()}\n\n## ${l.corrected}\n\n${data.corrected_transcript}\n\n## ${l.natural}\n\n${list(data.natural_phrases.map((item) => `${item.phrase} - ${item.reason}`))}\n\n## ${l.grammar}\n\n${corrections(data.grammar_issues)}\n\n## ${l.formulations}\n\n${corrections(data.native_formulations)}\n\n## ${l.vocabulary}\n\n${list(data.vocabulary.map((item) => `${item.word} - ${item.translation}\n  ${item.example}`))}\n\n## ${l.review}\n\n${list(data.uncertain_passages)}\n`;
 }

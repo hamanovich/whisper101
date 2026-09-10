@@ -28,6 +28,8 @@ export type RunOptions = Selection & {
   model?: string;
   cpu: boolean;
   keepWav: boolean;
+  sourceRun?: string;
+  transcriptSource?: "original" | "reviewed";
 };
 export function isTask(value: unknown): value is Task {
   return tasks.includes(value as Task);

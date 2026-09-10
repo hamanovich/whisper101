@@ -18,7 +18,7 @@ Explicitly distinguish possible recognition errors. Ignore insignificant stylist
 # Что звучало хорошо
 Correct or natural phrases to reinforce.
 # Полезные слова и конструкции
-At most 5 items from this speech: Polish — Russian — short Polish example.`;
+At most 5 items from this speech: Polish - Russian - short Polish example.`;
 
 export async function analyze(
   transcript: string,
