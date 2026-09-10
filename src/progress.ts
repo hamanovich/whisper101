@@ -263,7 +263,7 @@ export function renderProgress(progress: Progress) {
   return `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'">
 <title>Прогресс · whisper101</title><style>${styles}</style></head>
 <body><a class="skip" href="#repeats">Перейти к повторяющимся ошибкам</a><div class="shell">
 <header class="topbar"><a class="brand" href="#top" aria-label="whisper101, начало страницы">whisper<span>101</span></a><nav aria-label="Навигация по странице"><a href="#weeks">Активность</a><a href="#repeats">Ошибки</a><a href="#vocabulary">Словарь</a></nav></header>

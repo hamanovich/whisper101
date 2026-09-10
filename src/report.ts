@@ -5,6 +5,7 @@ import { marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 import { readSavedRun, existingFile } from "./history";
 import { plainDashes } from "./text";
+import { fontStyles, icon } from "./report-assets";
 
 export const escapeHtml = (text: string) =>
   text.replace(
@@ -57,10 +58,8 @@ import { parseCoaching, type Coaching } from "./tasks/coach";
 import { coachLocale } from "./locale";
 import type { FeedbackLanguage } from "./options";
 
-export const styles = readFileSync(
-  new URL("./report.css", import.meta.url),
-  "utf8",
-);
+export const styles =
+  fontStyles + readFileSync(new URL("./report.css", import.meta.url), "utf8");
 const e = escapeHtml;
 
 function coachingView(coach: Coaching, language: FeedbackLanguage) {
@@ -103,7 +102,7 @@ function coachingView(coach: Coaching, language: FeedbackLanguage) {
     items
       .map(
         (item) =>
-          `<article class="correction"><div class="pair"><div class="phrase"><small>${e(words.before)}</small><p>${e(item.original)}</p></div><div class="phrase after"><small>${e(words.after)}</small><p>${e(item.corrected)}</p></div></div><p class="explanation">${e(item.explanation)}</p></article>`,
+          `<article class="correction"><div class="pair"><div class="phrase"><small>${icon("text-align-left")}${e(words.before)}</small><p>${e(item.original)}</p></div><div class="phrase after"><small>${icon("check-circle")}${e(words.after)}</small><p>${e(item.corrected)}</p></div></div><p class="explanation">${icon("info")}<span>${e(item.explanation)}</span></p></article>`,
       )
       .join("");
   const stats = [
@@ -125,16 +124,16 @@ function coachingView(coach: Coaching, language: FeedbackLanguage) {
     ],
   ] as const;
   return `<div class="stats" aria-label="Выбранные примеры">${stats.map(([id, label, count]) => `<a class="stat" href="#${id}"><strong>${count}</strong><span>${e(label)}</span></a>`).join("")}</div>
-<p class="notice">${e(l.notice)}</p>
+<details class="notice"><summary>${language === "ru" ? "О чём говорят эти числа" : language === "pl" ? "Co oznaczają te liczby" : "What these numbers mean"}</summary><p>${e(l.notice)}</p></details>
 <section class="section" id="grammar"><div class="section-head"><h2>${e(words.grammar)}<span class="count">${coach.grammar_issues.length}</span></h2><p>${e(words.intro)}</p></div>
 ${coach.grammar_issues.length ? corrections(coach.grammar_issues.slice(0, 3)) : `<p class="empty">${e(l.empty)}</p>`}
 ${coach.grammar_issues.length > 3 ? `<details class="more"><summary>${e(words.more)} (${coach.grammar_issues.length - 3})</summary>${corrections(coach.grammar_issues.slice(3))}</details>` : ""}</section>
-<section class="section natural" id="natural"><h2>${e(words.natural)}<span class="count">${coach.natural_phrases.length}</span></h2>
+<section class="section natural" id="natural"><h2>${icon("check-circle")}${e(words.natural)}<span class="count">${coach.natural_phrases.length}</span></h2>
 ${coach.natural_phrases.length ? coach.natural_phrases.map((item) => `<div class="natural-item"><blockquote>${e(item.phrase)}</blockquote><p>${e(item.reason)}</p></div>`).join("") : `<p>${e(l.empty)}</p>`}</section>
 <section class="section" id="formulations"><div class="section-head"><h2>${e(l.formulations)}</h2></div>${corrections(coach.native_formulations) || `<p class="empty">${e(l.empty)}</p>`}</section>
 <section class="section" id="vocabulary"><div class="section-head"><h2>${e(words.vocabulary)}</h2></div><div class="vocabulary">${coach.vocabulary.map((item) => `<article class="word"><h3>${e(item.word)}</h3><p>${e(item.translation)}</p><blockquote>${e(item.example)}</blockquote></article>`).join("") || `<p class="empty">${e(l.empty)}</p>`}</div></section>
-<details class="text-disclosure"><summary>${e(words.corrected)}</summary><p class="reading">${e(coach.corrected_transcript)}</p></details>
-<details class="uncertain"><summary>${e(l.review)}<span class="count">${coach.uncertain_passages.length}</span></summary>${coach.uncertain_passages.length ? `<ul>${coach.uncertain_passages.map((text) => `<li>${e(text)}</li>`).join("")}</ul>` : `<p>${e(l.empty)}</p>`}</details>`;
+<details class="text-disclosure" id="corrected"><summary>${e(words.corrected)}</summary><p class="reading">${e(coach.corrected_transcript)}</p></details>
+<details class="uncertain" id="uncertain"><summary>${e(l.review)}<span class="count">${coach.uncertain_passages.length}</span></summary>${coach.uncertain_passages.length ? `<ul>${coach.uncertain_passages.map((text) => `<li>${e(text)}</li>`).join("")}</ul>` : `<p>${e(l.empty)}</p>`}</details>`;
 }
 
 export function renderReport(data: {
@@ -181,14 +180,16 @@ export function renderReport(data: {
   return `<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; media-src 'self' file:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; font-src data:; media-src 'self' file:; base-uri 'none'; form-action 'none'">
 <title>${e(data.title)} · whisper101</title><style>${styles}</style></head>
-<body><a class="skip" href="#feedback">Перейти к разбору</a><div class="shell">
-<header class="topbar"><a class="brand" href="#top" aria-label="whisper101, начало отчёта">whisper<span>101</span></a><nav aria-label="Навигация по отчёту"><a href="#feedback">Разбор</a><a href="#transcript">Транскрипт</a><a class="download" href="${data.reviewed ? "transcript.reviewed.txt" : "transcript.txt"}" download>Скачать текст</a></nav></header>
-<main id="top"><header class="hero"><div class="eyebrow">${data.coaching ? "Language Coach" : "Ваша запись"}</div><h1>${e(title)}</h1><p class="subtitle">${data.coaching ? "Замечайте удачные фразы. Находите слова точнее." : "Всё важное из записи, собранное в одном месте."}</p><div class="filemeta"><span class="filename">${e(data.title)}</span><span>${e(data.date)}</span><span class="status">${status}</span>${data.reviewed ? '<span class="status">Проверенный текст</span>' : ""}</div></header>
+<body class="report-page"><a class="skip" href="#feedback">Перейти к разбору</a><div class="shell">
+<header class="topbar"><a class="brand" href="#top" aria-label="whisper101, начало отчёта">whisper<span>101</span></a><nav aria-label="Навигация по отчёту"><a href="#feedback">Разбор</a><a href="#transcript">Транскрипт</a><a class="download" href="${data.reviewed ? "transcript.reviewed.txt" : "transcript.txt"}" download>${icon("download-simple")}Скачать текст</a></nav></header>
+<main id="top"><header class="hero"><div class="eyebrow">${data.coaching ? "Language Coach" : "Ваша запись"}</div><h1>${e(title)}</h1><p class="subtitle">${data.coaching ? "Удачные фразы, исправления и слова из вашей записи." : "Всё важное из записи, собранное в одном месте."}</p><div class="filemeta"><span class="filename">${e(data.title)}</span><span>${e(data.date)}</span><span class="status">${status}</span>${data.reviewed ? '<span class="status">Проверенный текст</span>' : ""}</div></header>
 ${data.status === "failed" || data.status === "running" ? '<div class="status-warning">Анализ мог не завершиться. Можно повторить его из истории в CLI; сохранённый транскрипт остаётся доступен.</div>' : ""}
+<section class="player recording-strip" aria-label="Аудиозапись"><div class="recording-label">${icon("headphones")}<div><h2 class="player-title">Ваша запись</h2><span class="recording-description">${duration ? `${duration} / ` : ""}${e(language || "Аудио")}</span></div></div>${data.audio ? '<audio aria-label="Исходное аудио" controls preload="metadata" src="audio.wav">Ваш браузер не поддерживает аудиоплеер.</audio>' : "<p>В этой папке нет аудио. Отчёт сформирован по сохранённому тексту.</p>"}</section>
+
 <div class="workspace"><div class="main-column" id="feedback">${data.coaching ? coachingView(data.coaching, data.feedbackLanguage || "ru") : `<section class="section"><h2>Разбор записи</h2><div class="content">${data.feedback ? safeMarkdown(data.feedback) : '<p class="empty">Разбора пока нет. Выберите задачу для этой записи в истории CLI.</p>'}</div></section>`}</div>
-<aside class="sidebar" aria-label="Запись и исходный текст"><section class="player"><h2 class="player-title">Ваша запись</h2>${data.audio ? '<p>Послушайте ещё раз, уже с подсказками.</p><audio aria-label="Исходное аудио" controls preload="metadata" src="audio.wav">Ваш браузер не поддерживает аудиоплеер.</audio>' : "<p>В этой папке нет аудио. Отчёт сформирован по сохранённому тексту.</p>"}<div class="audio-meta">${duration ? `<span>${duration}</span>` : ""}${language ? `<span>${e(language)}</span>` : ""}</div></section>
+<aside class="sidebar" aria-label="Содержание отчёта">${data.coaching ? `<nav class="contents" aria-label="Разделы разбора"><p class="contents-label">В этом разборе</p><a href="#grammar">${icon("pencil-line")}Грамматика<span>${data.coaching.grammar_issues.length}</span></a><a href="#natural">${icon("check-circle")}Удачные фразы<span>${data.coaching.natural_phrases.length}</span></a><a href="#formulations">${icon("chat-circle-text")}Формулировки<span>${data.coaching.native_formulations.length}</span></a><a href="#vocabulary">${icon("book-open")}Словарь<span>${data.coaching.vocabulary.length}</span></a><a href="#corrected">${icon("file-text")}Исправленный текст</a><a href="#uncertain">${icon("headphones")}Сверить с аудио</a></nav>` : ""}
 <section class="transcript-panel" id="transcript"><details><summary>${data.reviewed ? "Проверенный транскрипт" : "Транскрипт"}</summary><p class="reading" tabindex="0" aria-label="Текст записи">${e(data.transcript || "Транскрипт ещё не создан.")}</p></details><p>${data.reviewed ? "Использован в этом разборе. Исходный текст сохранён отдельно." : "Исходный текст для сверки с аудио."}</p></section>
 <div class="guide"><h3>Как читать разбор</h3><p>Сверяйте спорные места с записью. Whisper может менять слова. Разбор оценивает текст, а не произношение.</p></div>${data.diagnostics ? `<details class="diagnostics"><summary>Диагностика распознавания</summary><p>${e(data.diagnostics)}</p></details>` : ""}</aside></div></main>
 <footer><span>whisper101 / Локальный отчёт</span><span>Для переноса вместе с аудио скопируйте всю папку записи.</span></footer></div></body></html>`;
