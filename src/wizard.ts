@@ -6,8 +6,10 @@ import {
   tasks,
   taskNames,
   languageNames,
+  defaultModel,
   isTask,
   isFeedbackLanguage,
+  isModelName,
   type Selection,
   type FeedbackLanguage,
 } from "./options";
@@ -43,9 +45,11 @@ export const ui: WizardUI = {
   },
 };
 
+export type Preferences = Partial<Selection> & { model?: string };
+
 export async function loadPreferences(
   path = settingsPath,
-): Promise<Partial<Selection>> {
+): Promise<Preferences> {
   try {
     const data = await Bun.file(path).json();
     return {
@@ -57,6 +61,7 @@ export async function loadPreferences(
       ...(isFeedbackLanguage(data.feedbackLanguage)
         ? { feedbackLanguage: data.feedbackLanguage }
         : {}),
+      ...(isModelName(data.model) ? { model: data.model } : {}),
     };
   } catch {
     return {};
@@ -64,18 +69,22 @@ export async function loadPreferences(
 }
 
 export async function savePreferences(
-  selection: Selection,
+  values: Preferences,
   path = settingsPath,
 ) {
+  const saved = { ...(await loadPreferences(path)), ...values };
   await mkdir(dirname(path), { recursive: true });
   const temporary = `${path}.${crypto.randomUUID()}.tmp`;
   await writeFile(
     temporary,
     JSON.stringify(
       {
-        task: selection.task,
-        language: selection.language,
-        feedbackLanguage: selection.feedbackLanguage,
+        ...(saved.task ? { task: saved.task } : {}),
+        ...(saved.language ? { language: saved.language } : {}),
+        ...(saved.feedbackLanguage
+          ? { feedbackLanguage: saved.feedbackLanguage }
+          : {}),
+        ...(saved.model ? { model: saved.model } : {}),
       },
       null,
       2,
@@ -85,12 +94,33 @@ export async function savePreferences(
   await rename(temporary, path);
 }
 
+export type ModelSource = "flag" | "settings" | "env" | "default";
+export const modelSources: Record<ModelSource, string> = {
+  flag: "флаг --model",
+  settings: "настройки",
+  env: "OPENAI_MODEL из .env",
+  default: "значение по умолчанию",
+};
+
+export async function preferredModel(
+  override?: string,
+  path = settingsPath,
+): Promise<{ model: string; source: ModelSource }> {
+  if (override) return { model: override, source: "flag" };
+  const saved = (await loadPreferences(path)).model;
+  if (saved) return { model: saved, source: "settings" };
+  if (process.env.OPENAI_MODEL)
+    return { model: process.env.OPENAI_MODEL, source: "env" };
+  return { model: defaultModel, source: "default" };
+}
+
 export async function collectSelection(
   input: string,
   textInput: boolean,
   preset: Partial<Selection>,
   saved: Partial<Selection>,
   prompts = ui,
+  recording = false,
 ): Promise<Selection> {
   const task =
     preset.task ||
@@ -137,7 +167,9 @@ export async function collectSelection(
   prompts.show(
     `${input}\n${taskNames[task]}\n${textInput ? "Готовый текст; Whisper не запускается" : `Язык записи: ${languageNames[language] || language}`}\n${task === "transcribe" ? "Обработка локально" : `Язык результата: ${languageNames[feedbackLanguage]}\nТекст будет отправлен в OpenAI`}`,
   );
-  if (!(await prompts.confirm("Начать обработку?")))
+  if (
+    !(await prompts.confirm(recording ? "Начать запись?" : "Начать обработку?"))
+  )
     throw new Cancelled("Запуск отменён.");
   return { task, language, feedbackLanguage };
 }
@@ -146,6 +178,7 @@ export async function wizard(
   input: string,
   textInput: boolean,
   preset: Partial<Selection>,
+  recording = false,
 ) {
   if (!process.stdin.isTTY || !process.stdout.isTTY)
     throw new Error(
@@ -157,12 +190,14 @@ export async function wizard(
     textInput,
     preset,
     await loadPreferences(),
+    ui,
+    recording,
   );
   try {
     await savePreferences(selection);
   } catch {
     console.warn("Не удалось сохранить настройки; обработка продолжится.");
   }
-  p.outro("Начинаю обработку.");
+  p.outro(recording ? "Начинаю запись." : "Начинаю обработку.");
   return selection;
 }

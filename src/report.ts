@@ -56,7 +56,10 @@ import { parseCoaching, type Coaching } from "./tasks/coach";
 import { coachLocale } from "./locale";
 import type { FeedbackLanguage } from "./options";
 
-const styles = readFileSync(new URL("./report.css", import.meta.url), "utf8");
+export const styles = readFileSync(
+  new URL("./report.css", import.meta.url),
+  "utf8",
+);
 const e = escapeHtml;
 
 function coachingView(coach: Coaching, language: FeedbackLanguage) {

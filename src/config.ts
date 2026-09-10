@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { defaultModel } from "./options";
 
 export const ROOT = resolve(import.meta.dir, "..");
 export function config() {
@@ -11,7 +12,7 @@ export function config() {
       ROOT,
       process.env.WHISPER_MODEL || "../whisper.cpp/models/ggml-medium.bin",
     ),
-    model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
+    model: process.env.OPENAI_MODEL || defaultModel,
     apiKey: process.env.OPENAI_API_KEY,
   };
 }

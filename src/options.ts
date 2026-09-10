@@ -2,6 +2,13 @@ export const tasks = ["coach", "meeting", "note", "transcribe"] as const;
 export type Task = (typeof tasks)[number];
 export type TaskName = Task | "analyze";
 export const feedbackLanguages = ["ru", "en", "pl"] as const;
+export const models = [
+  "gpt-5.6-terra",
+  "gpt-5.6-luna",
+  "gpt-5.6-sol",
+  "gpt-6-astra",
+] as const;
+export const defaultModel = "gpt-5.6-terra";
 export type FeedbackLanguage = (typeof feedbackLanguages)[number];
 export const languageNames: Record<string, string> = {
   auto: "Определить автоматически",
@@ -36,6 +43,9 @@ export function isTask(value: unknown): value is Task {
 }
 export function isFeedbackLanguage(value: unknown): value is FeedbackLanguage {
   return feedbackLanguages.includes(value as FeedbackLanguage);
+}
+export function isModelName(value: unknown): value is string {
+  return typeof value === "string" && /^[\w.:-]{1,100}$/.test(value);
 }
 
 export function directSelection(

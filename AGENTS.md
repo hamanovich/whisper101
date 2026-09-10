@@ -6,10 +6,10 @@
 
 - `src/cli.ts`, `src/wizard.ts`, `src/options.ts`: entry point, interactive choices, and shared types.
 - `src/pipeline.ts`: transcription, task dispatch, output files, and run metadata.
-- `src/transcribe.ts`, `src/recognition.ts`: ffmpeg, whisper.cpp, and diagnostics.
+- `src/transcribe.ts`, `src/recognition.ts`, `src/record.ts`: ffmpeg, whisper.cpp, microphone capture, and diagnostics.
 - `src/tasks/`: coach, meeting, and note handlers.
 - `src/history.ts`, `src/library.ts`, `src/review.ts`: saved runs and transcript review.
-- `src/report.ts`, `src/open.ts`: sanitized offline HTML and system file opening.
+- `src/report.ts`, `src/progress.ts`, `src/open.ts`: sanitized offline HTML, the cross-run summary, and system file opening.
 - `tests/*.test.ts`: Bun tests with mocked API and prompt interactions.
 
 Generated files belong in ignored `output/`; wizard preferences live in ignored `.local/settings.json`. Native binaries and models normally live in sibling `../whisper.cpp/`.
@@ -19,6 +19,9 @@ Generated files belong in ignored `output/`; wizard preferences live in ignored 
 Run commands from the repository root so Bun loads `.env`:
 
 - `bun install`: install locked dependencies.
+- `bun start record`: record from the microphone, then run the wizard flow.
+- `bun start progress`: rebuild `output/progress.html` from saved runs.
+- `bun start settings`: choose the OpenAI model without editing `.env`.
 - `bun start recording.m4a`: run the interactive wizard.
 - `bun start recording.m4a --task coach --language en`: run directly.
 - `bun start transcript.txt --task note`: process existing text.

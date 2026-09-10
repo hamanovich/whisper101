@@ -9,6 +9,8 @@
     "transcribe": "bun src/cli.ts transcribe",
     "analyze": "bun src/cli.ts analyze",
     "doctor": "bun src/cli.ts doctor",
+    "record": "bun src/cli.ts record",
+    "progress": "bun src/cli.ts progress",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "meeting": "bun src/cli.ts meeting",

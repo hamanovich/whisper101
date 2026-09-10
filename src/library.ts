@@ -1,13 +1,27 @@
 import * as p from "@clack/prompts";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
-import { Cancelled, ui, type WizardUI } from "./wizard";
+import {
+  Cancelled,
+  modelSources,
+  preferredModel,
+  savePreferences,
+  ui,
+  type WizardUI,
+} from "./wizard";
 import { existingFile, listHistory, type SavedRun } from "./history";
 import { openLocal } from "./open";
 import { ensureReport } from "./report";
-import { taskNames, type Selection } from "./options";
+import {
+  defaultModel,
+  isModelName,
+  models,
+  taskNames,
+  type Selection,
+} from "./options";
 import { inputFile } from "./transcribe";
 import { reviewTranscript } from "./review";
+import { writeProgress } from "./progress";
 
 export type ContinueRun = {
   input: string;
@@ -16,6 +30,7 @@ export type ContinueRun = {
   model?: string;
   transcriptSource?: "original" | "reviewed";
 };
+export type HomeChoice = ContinueRun | { record: true };
 export function continuation(run: SavedRun, repeat: boolean): ContinueRun {
   const input =
     run.transcriptSource === "reviewed" && run.reviewedTranscript
@@ -136,7 +151,49 @@ export async function recent(
     }
   }
 }
-export async function home(historyOnly = false): Promise<ContinueRun | null> {
+export async function settings(prompts: WizardUI = ui, path?: string) {
+  const current = await preferredModel(undefined, path);
+  const options: { value: string; label: string }[] = models.map((value) => ({
+    value,
+    label: value === defaultModel ? `${value} (по умолчанию)` : value,
+  }));
+  if (!options.some((item) => item.value === current.model))
+    options.push({ value: current.model, label: current.model });
+  options.push(
+    { value: "custom", label: "Ввести другую модель" },
+    { value: "back", label: "Назад" },
+  );
+  prompts.show(
+    `Модель OpenAI: ${current.model}\nИсточник: ${modelSources[current.source]}\nЗадачи, кроме transcribe, используют её для анализа.`,
+    "Настройки",
+  );
+  const chosen = await prompts.pick(
+    "Какую модель использовать?",
+    options,
+    current.model,
+  );
+  if (chosen === "back") return;
+  let model = chosen;
+  if (chosen === "custom") {
+    const answer = await p.text({
+      message: "Название модели OpenAI",
+      placeholder: defaultModel,
+      validate: (value) =>
+        isModelName(value?.trim())
+          ? undefined
+          : "Название: буквы, цифры, точка, двоеточие и дефис.",
+    });
+    if (typeof answer !== "string") throw new Cancelled();
+    model = answer.trim();
+  }
+  await savePreferences({ model }, path);
+  prompts.show(
+    `Модель сохранена: ${model}\nОдин запуск можно переопределить флагом --model.`,
+    "Настройки",
+  );
+}
+
+export async function home(historyOnly = false): Promise<HomeChoice | null> {
   if (!process.stdin.isTTY || !process.stdout.isTTY)
     throw new Error(
       "Главное меню требует интерактивный терминал. Укажите файл и --task для прямого запуска.",
@@ -147,16 +204,32 @@ export async function home(historyOnly = false): Promise<ContinueRun | null> {
     const action = await ui.pick(
       "С чего начнём?",
       [
+        { value: "record", label: "Записать с микрофона" },
         { value: "new", label: "Обработать новый файл" },
         { value: "history", label: "Открыть недавнюю запись" },
+        { value: "progress", label: "Посмотреть прогресс" },
+        { value: "settings", label: "Настройки" },
         { value: "exit", label: "Выйти" },
       ],
-      "new",
+      "record",
     );
     if (action === "exit") return null;
+    if (action === "record") return { record: true };
     if (action === "history") {
       const selected = await recent();
       if (selected) return selected;
+      continue;
+    }
+    if (action === "progress") {
+      try {
+        await openLocal(await writeProgress());
+      } catch (error) {
+        console.log((error as Error).message);
+      }
+      continue;
+    }
+    if (action === "settings") {
+      await settings();
       continue;
     }
     const answer = await p.text({

@@ -3,10 +3,12 @@ import {
   collectSelection,
   Cancelled,
   loadPreferences,
+  preferredModel,
   savePreferences,
   type WizardUI,
 } from "../src/wizard";
-import { directSelection } from "../src/options";
+import { settings } from "../src/library";
+import { defaultModel, directSelection, models } from "../src/options";
 import { argumentsFor, main } from "../src/cli";
 import { pipeline } from "../src/pipeline";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
@@ -144,5 +146,72 @@ test("direct CLI validates tasks and cannot hang without a TTY", async () => {
     expect(run.openaiModel).toBeNull();
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("model preference wins over the environment and never erases other settings", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "settings-"));
+  const path = join(directory, "settings.json");
+  const previous = process.env.OPENAI_MODEL;
+  try {
+    process.env.OPENAI_MODEL = "gpt-5.6-sol";
+    expect(await preferredModel(undefined, path)).toEqual({
+      model: "gpt-5.6-sol",
+      source: "env",
+    });
+    delete process.env.OPENAI_MODEL;
+    expect(await preferredModel(undefined, path)).toEqual({
+      model: defaultModel,
+      source: "default",
+    });
+    expect(defaultModel).toBe("gpt-5.6-terra");
+    expect(models).toContain("gpt-6-astra");
+
+    await savePreferences(directSelection("coach", "pl", "ru"), path);
+    await savePreferences({ model: "gpt-6-astra" }, path);
+    expect(await loadPreferences(path)).toEqual({
+      task: "coach",
+      language: "pl",
+      feedbackLanguage: "ru",
+      model: "gpt-6-astra",
+    });
+
+    process.env.OPENAI_MODEL = "gpt-5.6-sol";
+    expect(await preferredModel(undefined, path)).toEqual({
+      model: "gpt-6-astra",
+      source: "settings",
+    });
+    expect(await preferredModel("gpt-5.6-luna", path)).toEqual({
+      model: "gpt-5.6-luna",
+      source: "flag",
+    });
+
+    await savePreferences(directSelection("note", "auto", "en"), path);
+    expect((await loadPreferences(path)).model).toBe("gpt-6-astra");
+    await Bun.write(path, JSON.stringify({ model: "не модель" }));
+    expect(await loadPreferences(path)).toEqual({});
+  } finally {
+    if (previous === undefined) delete process.env.OPENAI_MODEL;
+    else process.env.OPENAI_MODEL = previous;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("settings screen saves a chosen model and leaves it alone on back", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "settings-ui-"));
+  const path = join(directory, "settings.json");
+  try {
+    const chosen = fake(["gpt-6-astra"]);
+    await settings(chosen.ui, path);
+    expect(chosen.questions[0]).toContain("модель");
+    expect(chosen.initialValues[0]).toBe(defaultModel);
+    expect((await loadPreferences(path)).model).toBe("gpt-6-astra");
+
+    const kept = fake(["back"]);
+    await settings(kept.ui, path);
+    expect(kept.initialValues[0]).toBe("gpt-6-astra");
+    expect((await loadPreferences(path)).model).toBe("gpt-6-astra");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });

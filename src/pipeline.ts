@@ -131,7 +131,7 @@ export async function pipeline(options: RunOptions) {
           : await wavDuration(join(out, "audio.wav")).catch(() => null),
     };
     if (options.task !== "transcribe") {
-      console.log("Отправляю текст в OpenAI…");
+      console.log(`Отправляю текст в OpenAI (${run.openaiModel})…`);
       const start = performance.now();
       let feedback: string;
       try {
