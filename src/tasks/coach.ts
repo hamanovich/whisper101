@@ -3,6 +3,7 @@ import { recordingLabel, type Recognition } from "../recognition";
 
 import type { Selection } from "../options";
 import { coachLocale } from "../locale";
+import { plainDashes } from "../text";
 
 type Correction = { original: string; corrected: string; explanation: string };
 export type Coaching = {
@@ -117,7 +118,8 @@ uncertain_passages: possible recognition mistakes, ambiguous meaning or missing 
 Whisper may introduce errors or silently fix learner grammar. Do not confidently attribute transcript errors to the speaker.
 corrected_transcript: natural source-language text preserving meaning, with no invented facts.
 Do not evaluate pronunciation, accent, speaking speed, CEFR level, or actual audio from text.
-All arrays are selected highlights, not exhaustive counts. Prefer a small set of useful non-redundant items.`,
+All arrays are selected highlights, not exhaustive counts. Prefer a small set of useful non-redundant items.
+Never use em dashes or en dashes. Use a hyphen, comma, colon or parentheses instead.`,
       input: transcript,
       text: {
         format: {
@@ -132,7 +134,7 @@ All arrays are selected highlights, not exhaustive counts. Prefer a small set of
       throw new Error(
         "Language Coach: ответ пуст, отклонён или не завершён. Транскрипт сохранён.",
       );
-    return parseCoaching(response.output_text);
+    return parseCoaching(plainDashes(response.output_text));
   } catch (error) {
     if (error instanceof OpenAI.APIError)
       throw new Error(

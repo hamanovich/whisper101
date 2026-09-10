@@ -65,6 +65,14 @@ The recorder is a front end that produces a file path; the pipeline is untouched
 - The temp directory is removed only after the pipeline succeeds; on failure the path is printed so the take survives.
 - Requires a TTY, like the wizard and the library menu.
 
+### Dash normalization
+
+The repo's no-em-dash rule extends to model output. `plainDashes` in `src/text.ts` maps `U+2010-U+2015` and `U+2212` to an ASCII hyphen, and it runs in two places on purpose: at ingest in `analyze.ts`, `tasks/text.ts` and `tasks/coach.ts`, so `feedback.md` and `coach.json` are saved clean; and at render in `safeMarkdown`, `ensureReport` and `collectProgress`, so runs saved before this existed are cleaned when their page is rebuilt. The task prompts also ask for hyphens, but that is a quality nudge, not the guarantee.
+
+For coach data the replacement is applied to the raw JSON text before `parseCoaching`. That is safe because none of these characters are JSON structural characters, and it is one line instead of walking the parsed object.
+
+The transcript is deliberately excluded: it is a record of what was said, not application text.
+
 ### Cross-run progress (`src/progress.ts`)
 
 `collectProgress` reads every `output/*/coach.json` through `listHistory` and aggregates offline: no API call, no new dependency. Two groupings matter and they are not the same:

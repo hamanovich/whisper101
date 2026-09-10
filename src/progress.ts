@@ -4,6 +4,7 @@ import { ROOT } from "./config";
 import { listHistory } from "./history";
 import { wavDuration } from "./recognition";
 import { escapeHtml, styles } from "./report";
+import { plainDashes } from "./text";
 
 export type Repeat = {
   from: string;
@@ -113,7 +114,9 @@ export async function collectProgress(parent?: string): Promise<Progress> {
     activity.set(monday, week);
     let data: Record<string, unknown>;
     try {
-      data = await Bun.file(join(run.directory, "coach.json")).json();
+      data = JSON.parse(
+        plainDashes(await Bun.file(join(run.directory, "coach.json")).text()),
+      );
     } catch {
       continue;
     }

@@ -9,7 +9,7 @@
 - `src/transcribe.ts`, `src/recognition.ts`, `src/record.ts`: ffmpeg, whisper.cpp, microphone capture, and diagnostics.
 - `src/tasks/`: coach, meeting, and note handlers.
 - `src/history.ts`, `src/library.ts`, `src/review.ts`: saved runs and transcript review.
-- `src/report.ts`, `src/progress.ts`, `src/open.ts`: sanitized offline HTML, the cross-run summary, and system file opening.
+- `src/report.ts`, `src/progress.ts`, `src/open.ts`, `src/text.ts`: sanitized offline HTML, the cross-run summary, system file opening, and dash normalization.
 - `tests/*.test.ts`: Bun tests with mocked API and prompt interactions.
 
 Generated files belong in ignored `output/`; wizard preferences live in ignored `.local/settings.json`. Native binaries and models normally live in sibling `../whisper.cpp/`.
@@ -35,7 +35,7 @@ Bun executes TypeScript directly; there is no build step.
 ## Coding Style & Naming Conventions
 
 - Never write comments in code.
-- **No em dashes:** Never use the em dash character (U+2014) in any file, including `.js`, `.ts`, `.html`, `.css`, and `.md`, or in data, markup, or commit messages. Use a hyphen (`-`), comma, colon, or parentheses instead.
+- **No em dashes:** Never use the em dash character (U+2014) in any file, including `.js`, `.ts`, `.html`, `.css`, and `.md`, or in data, markup, or commit messages. Use a hyphen (`-`), comma, colon, or parentheses instead. Model output is held to the same rule by `plainDashes` in `src/text.ts`, applied both when saving results and when rendering pages.
 
 Use two-space indentation, double quotes, semicolons, ES modules, camelCase functions, and lowercase filenames. Keep strict TypeScript enabled. Prefer Bun APIs and subprocess argument arrays. Terminal messages are Russian; reports follow the selected result language. No linter is configured.
 

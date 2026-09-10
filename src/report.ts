@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { marked } from "marked";
 import sanitizeHtml from "sanitize-html";
 import { readSavedRun, existingFile } from "./history";
+import { plainDashes } from "./text";
 
 export const escapeHtml = (text: string) =>
   text.replace(
@@ -14,7 +15,7 @@ export const escapeHtml = (text: string) =>
       ]!,
   );
 export function safeMarkdown(markdown: string) {
-  return sanitizeHtml(marked.parse(markdown, { async: false }), {
+  return sanitizeHtml(marked.parse(plainDashes(markdown), { async: false }), {
     allowedTags: [
       "h1",
       "h2",
@@ -211,7 +212,7 @@ export async function ensureReport(
       join(directory, "coach.json"),
     ).json();
     if (run.selection.task === "coach")
-      coaching = parseCoaching(JSON.stringify(raw));
+      coaching = parseCoaching(plainDashes(JSON.stringify(raw)));
     durationSeconds = recognition?.durationSeconds ?? null;
     const mean = recognition?.meanTokenProbability;
     const low = recognition?.lowProbabilityTokens;
