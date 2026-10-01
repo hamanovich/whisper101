@@ -5,8 +5,11 @@ export const ROOT = resolve(import.meta.dir, "..");
 export function config() {
   const whisper =
     process.env.WHISPER_BIN || "../whisper.cpp/build/bin/whisper-cli";
+  const piper = process.env.PIPER_BIN || "piper";
   return {
     ffmpeg: process.env.FFMPEG_BIN || "ffmpeg",
+    piper: piper.includes("/") ? resolve(ROOT, piper) : piper,
+    piperVoices: resolve(ROOT, process.env.PIPER_VOICES || "../piper-voices"),
     whisper: whisper.includes("/") ? resolve(ROOT, whisper) : whisper,
     whisperModel: resolve(
       ROOT,

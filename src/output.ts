@@ -1,5 +1,18 @@
 import { mkdir } from "node:fs/promises";
-import { basename, extname, join } from "node:path";
+import { basename, extname, join, resolve } from "node:path";
+import { ROOT } from "./config";
+
+export async function outputDirectory(input: string, requested?: string) {
+  if (!requested) return createOutputDirectory(join(ROOT, "output"), input);
+  const out = resolve(requested);
+  await mkdir(resolve(out, ".."), { recursive: true });
+  await mkdir(out).catch(() => {
+    throw new Error(
+      `Не удалось создать новую папку: ${out}. Укажите несуществующую папку.`,
+    );
+  });
+  return out;
+}
 
 export async function createOutputDirectory(
   parent: string,

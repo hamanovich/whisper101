@@ -1,7 +1,7 @@
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { config, ROOT } from "./config";
-import { createOutputDirectory } from "./output";
+import { copyFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { config } from "./config";
+import { outputDirectory } from "./output";
 import { inputFile, transcribe } from "./transcribe";
 import { recognitionScores, wavDuration } from "./recognition";
 import { timed } from "./timing";
@@ -31,16 +31,7 @@ export async function pipeline(options: RunOptions) {
     transcript.length > 100_000
   )
     throw new Error("Текст длиннее 100 000 символов. Разделите его на части.");
-  let out: string;
-  if (options.out) {
-    out = resolve(options.out);
-    await mkdir(resolve(out, ".."), { recursive: true });
-    await mkdir(out).catch(() => {
-      throw new Error(
-        `Не удалось создать новую папку: ${out}. Укажите несуществующую папку.`,
-      );
-    });
-  } else out = await createOutputDirectory(join(ROOT, "output"), options.input);
+  const out = await outputDirectory(options.input, options.out);
   const started = performance.now();
   const run = {
     task: options.task,

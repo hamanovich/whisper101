@@ -122,7 +122,7 @@ export function wavHeader(bytes: number, rate = 16000, channels = 1) {
   return header;
 }
 
-async function readPcm(path: string) {
+export async function readPcm(path: string) {
   const file = Bun.file(path);
   if (file.size < 44) return null;
   const header = Buffer.from(await file.slice(0, 12).arrayBuffer());

@@ -11,6 +11,7 @@
     "doctor": "bun src/cli.ts doctor",
     "record": "bun src/cli.ts record",
     "progress": "bun src/cli.ts progress",
+    "listen": "bun src/cli.ts listen",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "meeting": "bun src/cli.ts meeting",

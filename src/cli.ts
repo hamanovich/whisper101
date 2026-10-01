@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { resolve, extname } from "node:path";
+import { resolve, extname, join } from "node:path";
 import { config } from "./config";
 import { executable, inputFile } from "./transcribe";
 import { timed } from "./timing";
@@ -7,6 +7,7 @@ import { pipeline } from "./pipeline";
 import { Cancelled, modelSources, preferredModel, wizard } from "./wizard";
 import { audioDevices, audioInput, record } from "./record";
 import { writeProgress } from "./progress";
+import { listen, voiceFor } from "./listen";
 import { home, settings } from "./library";
 import { ensureReport } from "./report";
 import { openLocal } from "./open";
@@ -28,6 +29,7 @@ bun start settings                         Выбрать модель OpenAI
 bun start report output/<папка>            Создать/открыть локальный HTML-отчёт
 bun start recording.m4a                    Интерактивный мастер
 bun start transcript.txt                   Задание по готовому тексту
+bun start listen words.csv                 Озвучить словарь из CSV для прослушивания
 bun start file.m4a --task meeting          Прямой запуск без опросника
 bun run coach file.m4a                     Короткий запуск тренера (pl → ru)
 bun run transcribe file.m4a                Только локальное распознавание
@@ -42,8 +44,11 @@ bun run doctor                             Проверка окружения �
 --model NAME                               Модель OpenAI на один запуск
 --cpu                                      Whisper без GPU
 --keep-wav                                 Сохранить audio.wav (по умолчанию)
---open                                     Открыть HTML-отчёт после обработки
+--open                                     Открыть HTML-отчёт (для listen: папку с аудио)
 --refresh                                  Для report: обновить HTML, сохранив копию
+--due                                      Для listen: только слова к повторению
+--slow                                     Для listen: медленнее и с длинными паузами
+--reverse                                  Для listen: сначала перевод, потом слово
 --help                                     Справка
 
 Модель для анализа выбирается в «Настройках»; --model меняет её на один запуск.
@@ -69,6 +74,9 @@ export function argumentsFor(args: string[]) {
       cpu: { type: "boolean" },
       open: { type: "boolean" },
       refresh: { type: "boolean" },
+      due: { type: "boolean" },
+      slow: { type: "boolean" },
+      reverse: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -87,6 +95,7 @@ export function argumentsFor(args: string[]) {
       "record",
       "progress",
       "settings",
+      "listen",
     ].includes(positionals[0] || "")
   )
     command = positionals.shift()!;
@@ -96,6 +105,10 @@ export function argumentsFor(args: string[]) {
     throw new Error("--refresh доступен только для команды report.");
   if (values.device !== undefined && command !== "record")
     throw new Error("--device доступен только для команды record.");
+  if ((values.due || values.slow || values.reverse) && command !== "listen")
+    throw new Error(
+      "--due, --slow и --reverse доступны только для команды listen.",
+    );
   const expected =
     ["doctor", "history", "record", "progress", "settings"].includes(command) ||
     menu
@@ -157,6 +170,22 @@ async function doctor() {
     `OpenAI key: ${c.apiKey ? "задан" : "не задан (локальная транскрипция доступна)"}`,
   );
   console.log(`OpenAI model: ${model.model} (${modelSources[model.source]})`);
+  const piper = await executable(c.piper).catch(() => null);
+  const found = await Promise.all(
+    ["pl", "ru"].map(async (code) =>
+      (await inputFile(join(c.piperVoices, `${voiceFor(code)}.onnx`)).then(
+        () => true,
+        () => false,
+      ))
+        ? `${code} ${voiceFor(code)}`
+        : `${code} не найден`,
+    ),
+  );
+  console.log(
+    piper
+      ? `Piper для listen: ${piper}; голоса: ${found.join(", ")}`
+      : "Piper для listen: не установлен (uv tool install --python 3.12 piper-tts)",
+  );
 }
 
 export async function main(args = Bun.argv.slice(2)) {
@@ -170,6 +199,16 @@ export async function main(args = Bun.argv.slice(2)) {
         "Настройки требуют интерактивный терминал. Для одного запуска используйте --model.",
       );
     return settings();
+  }
+  if (command === "listen") {
+    const out = await listen(resolve(file!), {
+      due: values.due,
+      slow: values.slow,
+      reverse: values.reverse,
+      out: values.out,
+    });
+    if (values.open) await openLocal(out);
+    return out;
   }
   if (command === "report")
     return openLocal(

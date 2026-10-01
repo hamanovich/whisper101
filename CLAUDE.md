@@ -13,6 +13,7 @@ bun install
 bun start record                                 # capture from the microphone, then process
 bun start record --task coach --language pl
 bun start progress                               # rebuild output/progress.html from saved runs
+bun start listen words.csv --due --slow          # vocabulary CSV to m4a via local Piper TTS
 bun start settings                               # pick the OpenAI model, saved to .local/settings.json
 bun start recording.m4a                          # interactive wizard
 bun start recording.m4a --task coach --language pl --open
@@ -64,6 +65,15 @@ The recorder is a front end that produces a file path; the pipeline is untouched
 - A hard `-t` cap (three hours) bounds a runaway recording. Captures under half a second are rejected before any API call.
 - The temp directory is removed only after the pipeline succeeds; on failure the path is printed so the take survives.
 - Requires a TTY, like the wizard and the library menu.
+
+### Vocabulary audio (`src/listen.ts`)
+
+`listen` turns a vocabulary CSV (the NextLang export: `term`, `translation`, `example`, `exampleTranslation`, `learningLanguage`, `translationLanguage`, plus SRS columns) into `<folder>.m4a`, `cards/NNN-<term>.m4a` and `listen.json`. It is a separate front end and never touches the pipeline or OpenAI.
+
+- Piper runs once per voice and length scale with all phrases on stdin and `-d`; it names files by `time.monotonic_ns()` and skips blank lines, so phrases are whitespace-collapsed, deduplicated, and output files are matched back by numeric sort plus a count check.
+- Languages arrive as words (`polish`) and are mapped to codes, then to voices via `voices` or `PIPER_VOICE_<CODE>`. All voices must share one sample rate because cards are assembled as raw PCM with `wavHeader`/`readPcm` from `record.ts`.
+- `--due` keeps rows without `learnedAt` whose `dueAt` is empty, unparseable, or past.
+- The folder has no `transcript.txt`, `audio.wav`, or `feedback.md`, so `listHistory` ignores it. Keep it that way.
 
 ### Dash normalization
 
