@@ -49,6 +49,7 @@ bun run doctor                             Проверка окружения �
 --due                                      Для listen: только слова к повторению
 --slow                                     Для listen: медленнее и с длинными паузами
 --reverse                                  Для listen: сначала перевод, потом слово
+--shuffle                                  Для listen: перемешать слова
 --help                                     Справка
 
 Модель для анализа выбирается в «Настройках»; --model меняет её на один запуск.
@@ -77,6 +78,7 @@ export function argumentsFor(args: string[]) {
       due: { type: "boolean" },
       slow: { type: "boolean" },
       reverse: { type: "boolean" },
+      shuffle: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
   });
@@ -105,9 +107,12 @@ export function argumentsFor(args: string[]) {
     throw new Error("--refresh доступен только для команды report.");
   if (values.device !== undefined && command !== "record")
     throw new Error("--device доступен только для команды record.");
-  if ((values.due || values.slow || values.reverse) && command !== "listen")
+  if (
+    (values.due || values.slow || values.reverse || values.shuffle) &&
+    command !== "listen"
+  )
     throw new Error(
-      "--due, --slow и --reverse доступны только для команды listen.",
+      "--due, --slow, --reverse и --shuffle доступны только для команды listen.",
     );
   const expected =
     ["doctor", "history", "record", "progress", "settings"].includes(command) ||
@@ -205,6 +210,7 @@ export async function main(args = Bun.argv.slice(2)) {
       due: values.due,
       slow: values.slow,
       reverse: values.reverse,
+      shuffle: values.shuffle,
       out: values.out,
     });
     if (values.open) await openLocal(out);

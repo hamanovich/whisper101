@@ -9,6 +9,7 @@ import {
   listen,
   parseCsv,
   readVocabulary,
+  shuffled,
   type Word,
 } from "../src/listen";
 import { wavHeader } from "../src/record";
@@ -82,6 +83,16 @@ test("due filter keeps new and overdue words and drops learned or future ones", 
   ]);
 });
 
+test("shuffle keeps every word once and leaves the original order untouched", () => {
+  const items = ["a", "b", "c", "d", "e"];
+  const result = shuffled(items, () => 0);
+  expect(result).toEqual(["b", "c", "d", "e", "a"]);
+  expect(items).toEqual(["a", "b", "c", "d", "e"]);
+  for (let attempt = 0; attempt < 20; attempt++)
+    expect(shuffled(items).sort()).toEqual(items);
+  expect(shuffled([])).toEqual([]);
+});
+
 test("language names from the export map to voice codes", () => {
   expect(languageCode("polish")).toBe("pl");
   expect(languageCode(" Russian ")).toBe("ru");
@@ -123,6 +134,10 @@ test("listen flags belong to the listen command, which needs one CSV file", () =
   expect(() => argumentsFor(["listen"])).toThrow();
   expect(() => argumentsFor(["voice.m4a", "--due"])).toThrow("listen");
   expect(() => argumentsFor(["record", "--reverse"])).toThrow("listen");
+  expect(
+    argumentsFor(["listen", "words.csv", "--shuffle"]).values.shuffle,
+  ).toBe(true);
+  expect(() => argumentsFor(["voice.m4a", "--shuffle"])).toThrow("--shuffle");
 });
 
 test.skipIf(!Bun.which("ffmpeg"))(

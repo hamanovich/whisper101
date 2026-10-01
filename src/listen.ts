@@ -29,6 +29,7 @@ export type ListenOptions = {
   due?: boolean;
   slow?: boolean;
   reverse?: boolean;
+  shuffle?: boolean;
 };
 
 export const voices: Record<string, string> = {
@@ -114,6 +115,15 @@ export function readVocabulary(text: string): Word[] {
       };
     })
     .filter((word) => word.term && word.translation);
+}
+
+export function shuffled<T>(items: T[], random = Math.random) {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index--) {
+    const other = Math.floor(random() * (index + 1));
+    [result[index], result[other]] = [result[other]!, result[index]!];
+  }
+  return result;
 }
 
 export function dueWords(words: Word[], now = new Date()) {
@@ -298,7 +308,8 @@ export async function listen(
     );
   });
   const all = readVocabulary(await Bun.file(input).text());
-  const words = options.due ? dueWords(all) : all;
+  const selected = options.due ? dueWords(all) : all;
+  const words = options.shuffle ? shuffled(selected) : selected;
   console.log(
     `Слов в словаре: ${all.length}${options.due ? `; к повторению: ${words.length}` : ""}`,
   );
@@ -422,6 +433,7 @@ export async function listen(
             due: !!options.due,
             slow: !!options.slow,
             reverse: !!options.reverse,
+            shuffle: !!options.shuffle,
           },
           voices: voicesUsed,
           words: cards.length,
